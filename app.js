@@ -5,13 +5,16 @@ const db = require('./db.js');
 const express = require("express");
 
 const app = express();
-const ExpressError = require("./expressError.js")
-const companies = require('./routes/companies.js')
+const ExpressError = require("./expressError.js");
+const companyRoutes = require('./routes/companies.js');
+const invoiceRoutes = require("./routes/invoices.js");
 
 app.use(express.json());
 // app.use(u)
 
-app.use('/companies',companies);
+app.use('/companies',companyRoutes);
+
+app.use('/invoices',invoiceRoutes);
 
 
 /** 404 handler */
