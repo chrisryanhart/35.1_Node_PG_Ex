@@ -121,7 +121,8 @@ router.post('/industries', async function(req,res,next){
 
 router.get('/industries/list', async function(req,res,next){
     try {
-        const results = await db.query(
+        const results = 
+        await db.query(
             `SELECT i.code, i.industry, c.code
             FROM industries AS i
                 LEFT JOIN industries_companies AS ic
@@ -129,14 +130,27 @@ router.get('/industries/list', async function(req,res,next){
                 RIGHT JOIN companies AS c ON ic.company_code = c.code
         `);
 
-        // const newObj = {};
-        // const formatted = results.rows.map(r => {
-        //     const new
-        //     if (newObj.includes(r.in))
-        //         r.industry});
+        const uniqueIndustries = new Set();
+        const industries = results.rows.map(r => uniqueIndustries.add(r.industry));
+        const industryKeys = Array.from(uniqueIndustries);
+        const resultObj = {};
+        
+        // loop through industries and add keys to object 
+        for (const ele of industryKeys){
+            resultObj[ele] = [];
+        }
 
+        // add companies if they don't exist in resultObj
+        // loop through results array
+        for (const row of results.rows){
+            const key = row.industry;
+            if (!resultObj[key].includes(row.code)){
+                resultObj[key].push(row.code);
+                }
+        }
 
-        return res.json({"industries": results.rows});
+      
+        return res.json({"industries": resultObj});
     } catch(e){
         next(e);
     }
