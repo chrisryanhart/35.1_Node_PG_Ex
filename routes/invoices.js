@@ -5,6 +5,7 @@ const ExpressError = require('../expressError.js');
 const router = new express.Router();
 
 
+console.log('in invoices.js')
 
 router.get('/', async function(req,res,next){
     try {
@@ -55,8 +56,34 @@ router.post('/', async function(req,res,next){
 router.put('/:id', async function(req,res,next){
     try {
         const id = req.params.id;
-        const {amt} = req.body;
+        const {amt,paid} = req.body;
 
+        const pay_status = await db.query(
+            `SELECT * FROM invoices
+            WHERE id=$1`, [id]
+        );
+
+        // handle paid status
+        if (pay_status.rows[0].paid === false && paid === true){
+            // set to paid
+            const updated_status = await db.query(`
+                UPDATE invoices SET paid=true, paid_date=CURRENT_DATE
+                WHERE id=$1
+                RETURNING id,comp_code,amt,paid,add_date,paid_date
+            `,[id]);
+            console.log('in update pay status');
+        }
+
+        if (pay_status.rows[0].paid === true && paid === false){
+            // set paid to null
+            const updated_status = await db.query(`
+            UPDATE invoices SET paid=false, paid_date=null
+            WHERE id=$1
+            RETURNING id,comp_code,amt,paid,add_date,paid_date
+            `,[id]);
+        }
+
+        // update payment amount
         const results = await db.query(
             `UPDATE invoices SET amt=$1
             WHERE id=$2
@@ -87,22 +114,6 @@ router.delete('/:id', async function(req,res,next){
         next(e);
     }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 module.exports = router;

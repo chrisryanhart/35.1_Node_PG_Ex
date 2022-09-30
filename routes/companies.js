@@ -2,8 +2,10 @@ const db = require('../db.js');
 
 const express = require('express');
 const ExpressError = require('../expressError.js');
+const slugify = require('slugify');
 const router = new express.Router();
 
+console.log('in companies.js')
 
 router.get('/', async function(req,res,next){
     try {
@@ -23,9 +25,12 @@ router.get('/:code', async function(req,res,next){
         const code = req.params.code;
 
         const results = await db.query(
-            `SELECT *
-            FROM companies
-            WHERE code=$1;`, [code]
+            `SELECT c.code, c.name, c.description, i.industry
+            FROM companies AS c
+                LEFT JOIN industries_companies AS ic
+                    ON c.code = ic.company_code
+                LEFT JOIN industries AS i ON ic.industry_code = i.code
+            WHERE c.code=$1;`, [code]
         );
         const companyInvoice = await db.query(
             `SELECT *
@@ -37,7 +42,10 @@ router.get('/:code', async function(req,res,next){
             throw new ExpressError('Company code not found!',404);
         }
 
+        const industries = results.rows.map(r => r.industry);
         results.rows[0]['invoices'] = companyInvoice.rows
+        results.rows[0]['industries'] = industries;
+
 
         return res.json({"company": results.rows[0]});
     } catch(e){
@@ -49,11 +57,12 @@ router.post('/',async function(req,res,next){
     try {
 
         const {code, name, description } = req.body;
+        const slugified_code = slugify(code,{lower:true,strict:true});
 
         const results = await db.query(
             `INSERT INTO companies
             VALUES ($1, $2, $3)
-            RETURNING code, name, description`, [code, name, description]
+            RETURNING code, name, description`, [slugified_code, name, description]
         );
         return res.json({"company": results.rows[0]});
     } catch(e){
@@ -93,6 +102,35 @@ router.delete('/:code',async function(req,res,next){
         }
         return res.json({"status": "deleted"});
     } catch (e) {
+        next(e);
+    }
+});
+
+router.post('/industries', async function(req,res,next){
+    try {
+        const results = await db.query(
+            `INSERT INTO industries
+            VALUES ($1,$2)
+            RETURNING code, industry;`,[req.body.code,req.body.industry]
+        );
+        return res.sjson({"industry": results.rows});
+    } catch(e){
+        next(e);
+    }
+});
+
+router.get('/industries/list', async function(req,res,next){
+    try {
+        const results = await db.query(
+            `SELECT i.code, i.industry, c.code
+            FROM industries AS i
+                LEFT JOIN industries_companies AS ic
+                    ON i.code = ic.industry_code
+                RIGHT JOIN companies AS c ON ic.company_code = c.code
+        `);
+
+        return res.json({"companies": results.rows});
+    } catch(e){
         next(e);
     }
 });

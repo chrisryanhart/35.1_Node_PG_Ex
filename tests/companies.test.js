@@ -35,7 +35,7 @@ afterEach(async () => {
 
 
 afterAll(async () => {
-    await db.end();
+    // await db.end();
 });
 
 
