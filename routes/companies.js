@@ -129,7 +129,30 @@ router.get('/industries/list', async function(req,res,next){
                 RIGHT JOIN companies AS c ON ic.company_code = c.code
         `);
 
-        return res.json({"companies": results.rows});
+        // const newObj = {};
+        // const formatted = results.rows.map(r => {
+        //     const new
+        //     if (newObj.includes(r.in))
+        //         r.industry});
+
+
+        return res.json({"industries": results.rows});
+    } catch(e){
+        next(e);
+    }
+});
+
+router.post('/addIndustry', async function(req,res,next){
+    try {
+        // 
+        const {company_code, industry_code} = req.body;
+
+        const results = await db.query(
+            `INSERT INTO industries_companies (company_code,industry_code)
+            VALUES ($1,$2)
+            RETURNING id, company_code,industry_code`, [company_code,industry_code]);
+
+        return res.json({"industries_companies": results.rows});
     } catch(e){
         next(e);
     }
